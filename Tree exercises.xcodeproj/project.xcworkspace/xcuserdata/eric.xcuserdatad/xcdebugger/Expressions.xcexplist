@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VariablesViewState
+   version = "1.0">
+   <ContextStates>
+      <ContextState
+         contextName = "std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;::compare(std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt; const&amp;) const [inlined]:string">
+      </ContextState>
+      <ContextState
+         contextName = "std::__1::basic_string&lt;char, std::__1::char_traits&lt;char&gt;, std::__1::allocator&lt;char&gt; &gt;::__is_long() const [inlined]:string">
+      </ContextState>
+      <ContextState
+         contextName = "BinaryTree&lt;StringNode&gt;::doRotation(StringNode*, TreeNode::Parity, TreeNode::Parity):BinaryTree.h">
+      </ContextState>
+      <ContextState
+         contextName = "BinaryTree&lt;StringNode&gt;::searchNode(StringNode*, StringNode*, bool&amp;):BinaryTree.h">
+         <PersistentStrings>
+            <PersistentString
+               value = "wRoot[nodeDir]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "TreeNode::TreeNode(TreeNode*):TreeNode.h">
+      </ContextState>
+      <ContextState
+         contextName = "main:main.cpp">
+      </ContextState>
+      <ContextState
+         contextName = "StringNode::StringNode(StringNode*):StringNode.h">
+      </ContextState>
+      <ContextState
+         contextName = "NodeWrap&lt;StringNode&gt;::operator[](TreeNode::Parity):NodeWrap.h">
+      </ContextState>
+      <ContextState
+         contextName = "StringNode::compare(StringNode*) const:StringNode.h">
+      </ContextState>
+      <ContextState
+         contextName = "BinaryTree&lt;StringNode&gt;::reBalance(StringNode*):BinaryTree.h">
+         <PersistentStrings>
+            <PersistentString
+               value = "wNode[LEFT]">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "BinaryTree&lt;StringNode&gt;::addNode(StringNode*):BinaryTree.h">
+      </ContextState>
+      <ContextState
+         contextName = "Visualize::buildGraph(Agraph_s*, TreeNode const*):visualizer.cpp">
+      </ContextState>
+      <ContextState
+         contextName = "TreeNode::isBlack():TreeNode.h">
+      </ContextState>
+      <ContextState
+         contextName = "dyld_stub_binder:(null)">
+      </ContextState>
+      <ContextState
+         contextName = "NodeWrap&lt;StringNode&gt;::NodeWrap(StringNode*):NodeWrap.h">
+      </ContextState>
+      <ContextState
+         contextName = "NodeWrap&lt;StringNode&gt;::castIFy(TreeNode*):NodeWrap.h">
+      </ContextState>
+      <ContextState
+         contextName = "TreeNode::getParentDir():TreeNode.h">
+      </ContextState>
+      <ContextState
+         contextName = "__dynamic_cast:(null)">
+      </ContextState>
+      <ContextState
+         contextName = "StringNode::getCValue() const:StringNode.h">
+      </ContextState>
+      <ContextState
+         contextName = "DerivedClass2&lt;DerivedClass1&gt;::operator[](int):DerivedClass2.h">
+      </ContextState>
+   </ContextStates>
+</VariablesViewState>
