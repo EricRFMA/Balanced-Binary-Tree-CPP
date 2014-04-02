@@ -27,7 +27,7 @@ void Visualize::makeVisualization()
     agattr(theGraph, AGEDGE, (char *)"textcolor", (char *)"black");
     agattr(theGraph, AGNODE, (char *)"label", (char *)"\\N");
     agattr(theGraph, AGNODE, (char *)"color", (char *)"black");
-    agattr(theGraph, AGNODE, (char *)"fontcolor", (char *)"black");
+    agattr(theGraph, AGNODE, (char *)"fontcolor", (char *)"white");
     agattr(theGraph, AGNODE, (char *)"style", (char *)"filled");
     buildGraph(theGraph, theRoot);
     

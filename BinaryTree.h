@@ -51,10 +51,14 @@ public:
         return treeRoot;
     }
     
-    void dumpTree(TreeNode *node);
+    void dumpSortedTree(const TreeNode *node);
+    void dumpPreOrderTree(const TreeNode *node);
+    
     void dumpTreeFromRoot()
     {
-        
+        cout << "------------------------------------" << endl;
+        cout << "Dumping sorted tree from root" << endl;
+        cout << "------------------------------------" << endl;
         cout << "The Root" << endl;
         cout << "Pointer as TreeNode: " << (void *)((TreeNode *)getRoot()) << endl;
         cout << "Pointer as btNodeType: " << (void *)((btNodeType *)getRoot()) << endl;
@@ -62,7 +66,7 @@ public:
         
         cout << "------------------------------------" << endl;
         
-        dumpTree(treeRoot);
+        dumpSortedTree(treeRoot);
         
     }
     
@@ -101,7 +105,7 @@ private:
         
     }
     
-    void dumpNodeInfo(btNodeType *node)
+    void dumpNodeInfo(const btNodeType *node)
     {
         cout << "Node: " << (void *)((TreeNode *)node) << " value '" << node->getCValue() << "', level:" << node->getDepth()
         << " (" << (node->isRed() ? "red" : "black") << ")" << endl;
@@ -191,6 +195,7 @@ void BinaryTree<btNodeType>::addNode(btNodeType *node)
     
     // Rebalance from the new parent node
     reBalance(foundNode);
+    dumpPreOrderTree(getRoot());
 }
 
 // Search the tree from the root for a node with the same value as the passed
@@ -236,30 +241,47 @@ btNodeType *BinaryTree<btNodeType>::searchNode(btNodeType *node, btNodeType *roo
     return searchNode(node, wRoot[nodeDir], found);
 }
 
+// In-order tree traversal == sorted tree values
 template <typename btNodeType>
-void BinaryTree<btNodeType>::dumpTree(TreeNode *node)
+void BinaryTree<btNodeType>::dumpSortedTree(const TreeNode *node)
 {
     // do the left branch, this node, and the right branch
     // should get sorted list
     if (node == nullptr) return;
     
-    dumpTree(node->leftNode);
+    dumpSortedTree(node->leftNode);
     
-    dumpNodeInfo(dynamic_cast<btNodeType *>(node));
+    dumpNodeInfo(dynamic_cast<const btNodeType *>(node));
     
-    dumpTree(node->rightNode);
+    dumpSortedTree(node->rightNode);
+}
+
+// Pre-order tree traversal gives us the root first, a little
+// easier to look at for debugging
+template <typename btNodeType>
+void BinaryTree<btNodeType>::dumpPreOrderTree(const TreeNode *node)
+{
+    // do the left branch, this node, and the right branch
+    // should get sorted list
+    if (node == nullptr) return;
+    
+    dumpNodeInfo(dynamic_cast<const btNodeType *>(node));
+    
+    dumpPreOrderTree(node->leftNode);
+    
+    dumpPreOrderTree(node->rightNode);
 }
 
 /**
  Here are the allowed node configurations:
  
  2-node:         Black
- /    \
+                /    \
  
  3-node:        Black                       Black
- /    \                      /     \
- Red                                Red
- /   \                               /  \
+                /    \                      /     \
+                Red                                Red
+                /   \                               /  \
  
  4-node: (must be split!)
  Black
@@ -323,7 +345,7 @@ void BinaryTree<btNodeType>::reBalance(btNodeType *node)
             TreeNode::NodeDirection subNodeDir = NONE;
             
             // Due to the way we maintain the tree, only ONE grandchild of the node can
-            // be red
+            // be red along the same path (left->left or right->right)
             NodeWrap<btNodeType> childNode(wNode[nDir]);
             
             NodeWrap<btNodeType> grandChildLeft;
@@ -336,7 +358,7 @@ void BinaryTree<btNodeType>::reBalance(btNodeType *node)
             if (grandChildRight.isRed()) subNodeDir = RIGHT;
             else if (grandChildLeft.isRed()) subNodeDir = LEFT;
             
-            if (subNodeDir != NONE)
+            if (subNodeDir != NONE && nDir == subNodeDir)
             {
                 // do the rotation/flip around "node" given the link directions
                 // we found pointing to the red nodes
@@ -360,8 +382,10 @@ btNodeType *BinaryTree<btNodeType>::doRotation(btNodeType *node,
     // get switched.  It should be black to red, and red to black
     NodeWrap<btNodeType> wNode(node);
     
+    debugPrintf("===================\n");
     debugPrintf("\nBefore rotation:\n");
-    littleDumpNode(node);
+    dumpPreOrderTree(node);
+    debugPrintf("===================\n");
     
     node->complementColor();
     wNode[childDir]->complementColor();
@@ -376,9 +400,20 @@ btNodeType *BinaryTree<btNodeType>::doRotation(btNodeType *node,
     
     *emptyLink = node;
     
-    // this makes the original node a child of ITS red child
+    // Ultimately, we want the parent of "node" to point to the rotated
+    // up node instead of "node".  This tracks the link from node's parent to "node"
     btNodeType *saveNode = dynamic_cast<btNodeType *>(node->parentNode);
     
+    if (saveNode) // if there IS a parent...
+    {
+        TreeNode::NodeDirection parentNodeDir;
+        parentNodeDir = node->getParentDir();
+        NodeWrap<btNodeType> wNodeParent(saveNode);  // When we get here, wNodeParent(parentNodeDir) will point to the link
+                                                     // we need to fix later on.
+        *(wNodeParent(parentNodeDir)) = wNode[childDir];
+    }
+    
+    // this makes the original node a child of ITS red child
     if (isRoot(node))
     {
         debugPrintf2("Making new root after rotation, '%s' in node %p\n",
@@ -390,17 +425,21 @@ btNodeType *BinaryTree<btNodeType>::doRotation(btNodeType *node,
     {
         wNode[childDir]->parentNode = saveNode;  // change new parent of node rotated "up"
     }
+
     
     node->parentNode = wNode[childDir];  // change new parent of this node
     *(wNode(childDir)) = nullptr;  // the child of the node we rotated "down" no longer has
                                    // a child on the formerly red node side, since that's now the root
+
+
     
-    
-    debugPrintf("\nAfter rotation:\n");
-    littleDumpNode(wNode[childDir]);
+    debugPrintf("===================\n");
+    debugPrintf1("\nAfter rotation to the %s:\n", childDir == LEFT ? "left" : "right");
+    dumpPreOrderTree(wNode[PARENT]);
+    debugPrintf("===================\n");
     
     // Return the new root of this subtree
-    return wNode[childDir];
+    return wNode[PARENT];
     
 }
 
