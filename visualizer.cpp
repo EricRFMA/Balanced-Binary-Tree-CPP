@@ -9,7 +9,7 @@
 #include <iostream>
 
 #include "visualizer.h"
-
+#include "debugprintf.h"
 
 /// Make the magic happen!
 
@@ -48,6 +48,8 @@ void Visualize::buildGraph(Agraph_t *theGraph, TreeNode const *theNode)
     // Add this node to the graph
     StringNode const *strNode = dynamic_cast<StringNode const *>(theNode);
     
+    debugPrintf3("buildGraph for node %p(%s)... parent %p\n", (void *)theNode, strNode->getCValue(), strNode->parentNode);
+    
     Agnode_t *aNode = agnode(theGraph, (char *)strNode->getCValue(), true);
 
     // Set node color depending on red/black value of node
@@ -84,6 +86,8 @@ void Visualize::buildGraph(Agraph_t *theGraph, TreeNode const *theNode)
             default:
                 assert(false);
         }
+        
+        debugPrintf4("Adding edge from %p(%s) to %p(%s)\n", theNode->parentNode, parNode->getCValue(), theNode, strNode->getCValue() );
         
         Agedge_t *theEdge = agedge(theGraph,  parentNode, aNode, (char *)edgeName, true);
         agset(theEdge, (char *)"label", (char *)edgeName);

@@ -85,8 +85,9 @@ private:
                            bool &found);
     void reBalance(btNodeType *wNode);
     btNodeType * doRotation(btNodeType *node,
-                            TreeNode::NodeDirection childDir,
-                            TreeNode::NodeDirection grandChildDir);
+                            TreeNode::NodeDirection childDir);
+    btNodeType * doDoubleRotation(btNodeType *node,
+                            TreeNode::NodeDirection childDir);
     void drillDownToMaxDepth(btNodeType *node, unsigned int &minDepth, unsigned int &maxDepth)
     {
         if (node == nullptr) return;
@@ -328,25 +329,29 @@ void BinaryTree<btNodeType>::reBalance(btNodeType *node)
     }
     else if (wNode.isBlack() &&
              (TreeNode::isRed(wNode[LEFT]) || TreeNode::isRed(wNode[RIGHT])))
-        // do we have two red nodes in a row amongst the children?
+        // do we have black node, with one of the two child nodes is red?
     {
         TreeNode::NodeDirection nDir = NONE;
         
-        assert(!TreeNode::isRed(wNode[LEFT]) || !(TreeNode::isRed(wNode[RIGHT])));  // they can't both be red
+        assert(!(TreeNode::isRed(wNode[LEFT]) && (TreeNode::isRed(wNode[RIGHT]))));  // they can't both be red
         
+        // Indicate whether the red node in question is on the right or left.
         if (TreeNode::isRed(wNode[LEFT])) nDir = LEFT;
         else if (TreeNode::isRed(wNode[RIGHT])) nDir = RIGHT;
         
         assert(nDir != NONE);  // We know one of the children has to be red
         
-        if (nDir != NONE)
+        NodeWrap<btNodeType> childNode(wNode[nDir]);
+        
+        // If no grandchildren, there's nothing to do
+        if (nDir != NONE && (childNode[LEFT] != nullptr || childNode[RIGHT] !=nullptr))
         {
             // We have some work to do!
             TreeNode::NodeDirection subNodeDir = NONE;
             
             // Due to the way we maintain the tree, only ONE grandchild of the node can
             // be red along the same path (left->left or right->right)
-            NodeWrap<btNodeType> childNode(wNode[nDir]);
+
             
             NodeWrap<btNodeType> grandChildLeft;
             if (childNode[LEFT] != nullptr) grandChildLeft = (childNode[LEFT]);
@@ -358,12 +363,20 @@ void BinaryTree<btNodeType>::reBalance(btNodeType *node)
             if (grandChildRight.isRed()) subNodeDir = RIGHT;
             else if (grandChildLeft.isRed()) subNodeDir = LEFT;
             
-            if (subNodeDir != NONE && nDir == subNodeDir)
+            if (subNodeDir != NONE)
             {
-                // do the rotation/flip around "node" given the link directions
-                // we found pointing to the red nodes
-                newNode = doRotation(node, nDir, subNodeDir);
-                
+                // Both the red child and grandchild are on the same side
+                if (nDir == subNodeDir)
+                {
+                    // do the rotation/flip around "node" given the link directions
+                    // we found pointing to the red nodes
+                    // If the red node is in direction "nDir" we want to rotate in the opposite direction
+                    newNode = doRotation(node, !nDir);
+                }
+                else // The red child and grandchild are on DIFFERENT sides
+                {
+                    newNode = doDoubleRotation(node, !nDir);
+                }
             }
         }
         
@@ -373,74 +386,75 @@ void BinaryTree<btNodeType>::reBalance(btNodeType *node)
     reBalance(dynamic_cast<btNodeType *>(newNode->parentNode));
 }
 
+// We know that the node[rotateDir] is red and node[rotateDir][rotateDir] is red
 template <typename btNodeType>
 btNodeType *BinaryTree<btNodeType>::doRotation(btNodeType *node,
-                                               TreeNode::NodeDirection childDir,
-                                               TreeNode::NodeDirection grandChildDir)
+                                               TreeNode::NodeDirection rotateDir)
 {
-    // First, the original node's color and the affected child colors
-    // get switched.  It should be black to red, and red to black
+
     NodeWrap<btNodeType> wNode(node);
+    btNodeType *save = wNode[!rotateDir];
+    NodeWrap<btNodeType> wSave(save);
     
     debugPrintf("===================\n");
     debugPrintf("\nBefore rotation:\n");
     dumpPreOrderTree(node);
     debugPrintf("===================\n");
     
-    node->complementColor();
-    wNode[childDir]->complementColor();
-    NodeWrap<btNodeType> wChildDir(wNode[childDir]);
+    *(wNode(!rotateDir)) = wSave[rotateDir];
+    *(wSave(rotateDir)) = node;
     
-    // This is the link we're going to have point to the original node
-    // It points to the sibling of the red child node of wNode[childDir]
-    btNodeType **emptyLink = wChildDir(!grandChildDir);
-    
-    // make sure the link we're about to use is free
-    assert(*emptyLink == nullptr);
-    
-    *emptyLink = node;
+    node->setToRed();
+    save->setToBlack();
     
     // Ultimately, we want the parent of "node" to point to the rotated
     // up node instead of "node".  This tracks the link from node's parent to "node"
-    btNodeType *saveNode = dynamic_cast<btNodeType *>(node->parentNode);
+    btNodeType *saveParentNode = dynamic_cast<btNodeType *>(node->parentNode);
     
-    if (saveNode) // if there IS a parent...
+    if (saveParentNode) // if there IS a parent...
     {
         TreeNode::NodeDirection parentNodeDir;
         parentNodeDir = node->getParentDir();
-        NodeWrap<btNodeType> wNodeParent(saveNode);  // When we get here, wNodeParent(parentNodeDir) will point to the link
+        NodeWrap<btNodeType> wNodeParent(saveParentNode);  // When we get here, wNodeParent(parentNodeDir) will point to the link
                                                      // we need to fix later on.
-        *(wNodeParent(parentNodeDir)) = wNode[childDir];
+        *(wNodeParent(parentNodeDir)) = save; // wNode[rotateDir];
     }
     
     // this makes the original node a child of ITS red child
     if (isRoot(node))
     {
         debugPrintf2("Making new root after rotation, '%s' in node %p\n",
-                     wNode[childDir]->getCValue(), (void *)(wNode[childDir]));
-        makeRoot(wNode[childDir]);  // have to set the new root, if needed
-        wNode[childDir]->parentNode = nullptr;
+                    save->getCValue(), (void *)(save));
+        makeRoot(save);  // have to set the new root, if needed
+        save->parentNode = nullptr;
+        node->setToBlack();  // The root is always black
     }
     else
     {
-        wNode[childDir]->parentNode = saveNode;  // change new parent of node rotated "up"
+        save->parentNode = saveParentNode;  // change new parent of node rotated "up"
     }
-
     
-    node->parentNode = wNode[childDir];  // change new parent of this node
-    *(wNode(childDir)) = nullptr;  // the child of the node we rotated "down" no longer has
-                                   // a child on the formerly red node side, since that's now the root
-
-
+    node->parentNode = save;  // change new parent of this node
     
     debugPrintf("===================\n");
-    debugPrintf1("\nAfter rotation to the %s:\n", childDir == LEFT ? "left" : "right");
-    dumpPreOrderTree(wNode[PARENT]);
+    debugPrintf1("\nAfter rotation to the %s:\n", rotateDir == LEFT ? "left" : "right");
+    dumpPreOrderTree(save);
     debugPrintf("===================\n");
     
     // Return the new root of this subtree
-    return wNode[PARENT];
+    return save;
     
+}
+
+template <typename btNodeType>
+btNodeType *BinaryTree<btNodeType>::doDoubleRotation(btNodeType *node,
+                                               TreeNode::NodeDirection rotateDir)
+{
+    // First, do a single rotation so that red grandchild is on the same side and the red child
+    NodeWrap<btNodeType> wNode(node);
+    
+    *(wNode(!rotateDir)) = doRotation(wNode[!rotateDir], !rotateDir); 
+    return doRotation(node, rotateDir);
 }
 
 #ifdef DEBUG_OUTPUT

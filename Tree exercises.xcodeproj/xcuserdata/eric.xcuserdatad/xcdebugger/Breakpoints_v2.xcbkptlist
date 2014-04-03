@@ -207,11 +207,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "BinaryTree.h"
-            timestampString = "418089005.673692"
+            timestampString = "418166047.609913"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "127"
-            endingLineNumber = "127"
+            startingLineNumber = "128"
+            endingLineNumber = "128"
             landmarkName = "addNode(btNodeType *node)"
             landmarkType = "7">
          </BreakpointContent>
@@ -223,13 +223,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "BinaryTree.h"
-            timestampString = "418093102.161319"
+            timestampString = "418172130.819598"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "383"
-            endingLineNumber = "383"
-            landmarkName = "doRotation(btNodeType *node, TreeNode::NodeDirection childDir, TreeNode::NodeDirection grandChildDir)"
-            landmarkType = "7">
+            startingLineNumber = "388"
+            endingLineNumber = "388">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

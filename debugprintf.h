@@ -15,11 +15,13 @@
 #define debugPrintf1(x, y) printf(x, y)
 #define debugPrintf2(x, y, z) printf(x, y, z)
 #define debugPrintf3(x, y, z, xx) printf(x, y, z, xx)
+#define debugPrintf4(x, y, z, xx, yy) printf(x, y, z, xx, yy)
 #else
 #define debugPrintf(x)
 #define debugPrintf1(x, y)
 #define debugPrintf2(x, y, z)
 #define debugPrintf3(x, y, z, xx)
+#define debugPrintf4(x, y, z, xx, yy)
 #endif
 
 #endif
