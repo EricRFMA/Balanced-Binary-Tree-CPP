@@ -33,7 +33,7 @@ void Visualize::makeVisualization()
     
     GVC_t *gvc = gvContext();
     gvLayout(gvc, theGraph, "dot");
-    gvRenderFilename(gvc, theGraph, "png", OUTPUTFILENAME);
+    gvRenderFilename(gvc, theGraph, "pdf", OUTPUTFILENAME);
     
     cout << "Rendering complete to " << OUTPUTFILENAME << endl;
 }
@@ -87,7 +87,8 @@ void Visualize::buildGraph(Agraph_t *theGraph, TreeNode const *theNode)
                 assert(false);
         }
         
-        debugPrintf4("Adding edge from %p(%s) to %p(%s)\n", theNode->parentNode, parNode->getCValue(), theNode, strNode->getCValue() );
+        debugPrintf4("Adding edge from %p(%s) to %p(%s) label '", theNode->parentNode, parNode->getCValue(), theNode, strNode->getCValue() );
+        debugPrintf1("%s'\n", edgeName);
         
         Agedge_t *theEdge = agedge(theGraph,  parentNode, aNode, (char *)edgeName, true);
         agset(theEdge, (char *)"label", (char *)edgeName);
@@ -142,5 +143,5 @@ void Visualize::addDummies(Agraph_t *theGraph, Agnode_t *theGNode,
     setEdgeAttr = agset(dummyEdge, (char *)"dir", (char *)"none");
     agset(dummyEdge, (char *)"style", (char *)"invis");
     
-    cout << "setNodeAttr: " << setNodeAttr << " setEdgeAttr: " << setEdgeAttr << endl;
+    // cout << "setNodeAttr: " << setNodeAttr << " setEdgeAttr: " << setEdgeAttr << endl;
 }

@@ -207,5 +207,5 @@ private:
 /// Here's the logical "NOT" for parity !LEFT = RIGHT and !RIGHT = LEFT
 /// Still, two wrongs don't make a RIGHT
 TreeNode::NodeDirection operator!(TreeNode::NodeDirection dir);
-
+const char *directionString(TreeNode::NodeDirection dir);
 #endif /* defined(__Tree_exercises__TreeNode__) */

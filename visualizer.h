@@ -13,7 +13,7 @@
 #include "graphviz/cgraph.h"
 #include "graphviz/gvc.h"
 
-#define OUTPUTFILENAME "TreeGraph.png"
+#define OUTPUTFILENAME "TreeGraph.pdf"
 class Visualize
 {
 public:

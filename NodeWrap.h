@@ -19,7 +19,7 @@
 /// NodeWrap, inheriting from TreeNode, is the same as TreeNode, only adding additional functions
 /// NodeType had also better be derived from TreeNode.
 template <typename NodeType>
-class NodeWrap : public NodeType
+class NodeWrap 
 {
     
 public:
@@ -28,17 +28,17 @@ public:
         
     }
     
-    NodeWrap(NodeType *nT) : NodeType(nT)
+    NodeWrap(NodeType *nT)// : NodeType(nT)
     {
         realTreeNode = nT;
     }
     
-    NodeWrap(const NodeType *nT) : NodeType(nT)
+    NodeWrap(const NodeType *nT)// : NodeType(nT)
     {
         realTreeNode = nT;
     }
     
-    NodeWrap(const NodeType &nT) : NodeType(nT)
+    NodeWrap(const NodeType &nT) // : NodeType(nT)
     {
         realTreeNode = nT;
     }
@@ -158,6 +158,16 @@ public:
                 assert(false);
                 return nullptr;
         }
+    }
+    
+    bool isBlack() const
+    {
+        return realTreeNode->isBlack();
+    }
+    
+    bool isRed() const
+    {
+        return realTreeNode->isRed();
     }
     
     NodeType *getRealNode()

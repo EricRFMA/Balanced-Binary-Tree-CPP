@@ -17,6 +17,7 @@
 #include "TreeNode.h"
 #include "NodeWrap.h"
 #include "debugprintf.h"
+#include "visualizer.h"
 
 using namespace std;
 
@@ -44,6 +45,7 @@ public:
     {
         assert(newRoot != nullptr);
         treeRoot = newRoot;
+        treeRoot->setToBlack();
     }
     
     btNodeType *getRoot()
@@ -83,7 +85,7 @@ private:
     btNodeType *findNode(btNodeType *node, bool &found);
     btNodeType *searchNode(btNodeType * node, btNodeType * root,
                            bool &found);
-    void reBalance(btNodeType *wNode);
+    void reBalance(btNodeType *wNode, TreeNode::NodeDirection dir);
     btNodeType * doRotation(btNodeType *node,
                             TreeNode::NodeDirection childDir);
     btNodeType * doDoubleRotation(btNodeType *node,
@@ -108,12 +110,18 @@ private:
     
     void dumpNodeInfo(const btNodeType *node)
     {
+        btNodeType *leftNodeName = dynamic_cast<btNodeType *>(node->leftNode);
+        btNodeType *rightNodeName = dynamic_cast<btNodeType *>(node->rightNode);
+        btNodeType *parentNodeName = dynamic_cast<btNodeType *>(node->parentNode);
+        
         cout << "Node: " << (void *)((TreeNode *)node) << " value '" << node->getCValue() << "', level:" << node->getDepth()
         << " (" << (node->isRed() ? "red" : "black") << ")" << endl;
-        cout << "\tParent Node: " << (void *)((TreeNode *)(node->parentNode)) << endl;
-        cout << "\t\tLeft Node: " << (void *)((TreeNode *)(node->leftNode)) << endl;
-        cout << "\t\tRight Node: " << (void *)((TreeNode *)(node->rightNode)) << endl << endl;
+        cout << "\tParent Node: " << (void *)((TreeNode *)(node->parentNode)) <<  " [" << (node->parentNode ? parentNodeName->getCValue() : "NULL") << "]" << endl;
+        cout << "\t\tLeft Node: " << (void *)((TreeNode *)(node->leftNode)) << " [" << (node->leftNode ? leftNodeName->getCValue() : "NULL") << "]" << endl;
+        cout << "\t\tRight Node: " << (void *)((TreeNode *)(node->rightNode)) << " [" << (node->rightNode ? rightNodeName->getCValue() : "NULL") << "]" << endl << endl;
     }
+    
+    unsigned int verifyTree(const btNodeType *theRoot);
 };
 
 
@@ -124,9 +132,6 @@ void BinaryTree<btNodeType>::addNode(btNodeType *node)
 {
     debugPrintf2("Adding node %p, with value '%s'\n", node, node->getCValue());
     
-    
-    node->setToRed();   // all nodes start out red
-    
     if (treeRoot == nullptr)
     {
         debugPrintf("\tadding as root\n");
@@ -135,6 +140,8 @@ void BinaryTree<btNodeType>::addNode(btNodeType *node)
         
         return;
     }
+    
+    node->setToRed();   // all nodes start out red except the root
     
     // Step 1: search the tree to see where this node should go.
     //          If found is set to true in findNode, then the node
@@ -163,17 +170,20 @@ void BinaryTree<btNodeType>::addNode(btNodeType *node)
                            // Since the foundNode is supposed to be the leaf node
                            // where we're going to add our new node, that child pointer
                            // had better be null!
+    TreeNode::NodeDirection whichSide;  // which side (left or right) node was added to
     
     if (compResult < 0)
     {
         debugPrintf1("Adding '%s' to left node ", node->getCValue());
-        theNode = wFoundNode[LEFT];
+        whichSide = LEFT;
     }
     else
     {
         debugPrintf1("Adding '%s' to right node ", node->getCValue());
-        theNode = wFoundNode[RIGHT];
+        whichSide = RIGHT;
     }
+    
+    theNode = wFoundNode[whichSide];
     
     // Note at this point, foundNode will be the parent (before rebalancing)
     // of the new node
@@ -183,20 +193,25 @@ void BinaryTree<btNodeType>::addNode(btNodeType *node)
     assert(theNode == nullptr);
     
     // Step 3:  If the branch is free, add the node as a new leaf
-    if (compResult < 0)
+    if (whichSide == LEFT)
     {
         foundNode->spliceNodeLeft(node);
-        debugPrintf2("%p, depth:%d\n", foundNode->leftNode, foundNode->leftNode->getDepth());
+        debugPrintf3("%p, '%s' depth:%d\n", foundNode->leftNode, foundNode->getCValue(), foundNode->leftNode->getDepth());
     }
     else
     {
         foundNode->spliceNodeRight(node);
-        debugPrintf2("%p, depth:%d\n", foundNode->rightNode, foundNode->rightNode->getDepth());
+        debugPrintf3("%p, '%s' depth:%d\n", foundNode->rightNode, foundNode->getCValue(), foundNode->rightNode->getDepth());
     }
     
     // Rebalance from the new parent node
-    reBalance(foundNode);
+    reBalance(foundNode, whichSide);
+
+#ifdef DEBUG_OUTPUT
     dumpPreOrderTree(getRoot());
+#endif
+    
+    assert (verifyTree(getRoot()) != 0);
 }
 
 // Search the tree from the root for a node with the same value as the passed
@@ -304,9 +319,10 @@ void BinaryTree<btNodeType>::dumpPreOrderTree(const TreeNode *node)
 /// The argument node is the node at which we're rebalancing.  We only look locally at the current node,
 /// and its children (and maybe grandchildren in some cases)
 template <typename btNodeType>
-void BinaryTree<btNodeType>::reBalance(btNodeType *node)
+void BinaryTree<btNodeType>::reBalance(btNodeType *node, TreeNode::NodeDirection whichSide)
 {
     if (node == nullptr) return;
+    bool treeChanged = false;
     
     // First, if we're at the root, we're done
     // if (isRoot(node)) return;
@@ -322,68 +338,48 @@ void BinaryTree<btNodeType>::reBalance(btNodeType *node)
     //          Basically splitting up a four node
     if (wNode.isBlack() && TreeNode::isRed(wNode[LEFT]) && TreeNode::isRed(wNode[RIGHT]))
     {
-        node->setToRed();
+        // The root can't be red!
+        if (!isRoot(node))
+            node->setToRed();
         
         if (wNode[LEFT] != nullptr) wNode[LEFT]->setToBlack();
         if (wNode[RIGHT] != nullptr) wNode[RIGHT]->setToBlack();
+        treeChanged =  true;
     }
-    else if (wNode.isBlack() &&
-             (TreeNode::isRed(wNode[LEFT]) || TreeNode::isRed(wNode[RIGHT])))
-        // do we have black node, with one of the two child nodes is red?
+    else
     {
-        TreeNode::NodeDirection nDir = NONE;
-        
-        assert(!(TreeNode::isRed(wNode[LEFT]) && (TreeNode::isRed(wNode[RIGHT]))));  // they can't both be red
-        
-        // Indicate whether the red node in question is on the right or left.
-        if (TreeNode::isRed(wNode[LEFT])) nDir = LEFT;
-        else if (TreeNode::isRed(wNode[RIGHT])) nDir = RIGHT;
-        
-        assert(nDir != NONE);  // We know one of the children has to be red
-        
-        NodeWrap<btNodeType> childNode(wNode[nDir]);
-        
-        // If no grandchildren, there's nothing to do
-        if (nDir != NONE && (childNode[LEFT] != nullptr || childNode[RIGHT] !=nullptr))
+        // Check for configurations that need rotation
+        // First, two reds in a row on the branch where we just added a node
+        // \todo Code it the hard way, make better syntax later
+        if (wNode[whichSide] != nullptr && wNode[whichSide]->isRed())
         {
-            // We have some work to do!
-            TreeNode::NodeDirection subNodeDir = NONE;
-            
-            // Due to the way we maintain the tree, only ONE grandchild of the node can
-            // be red along the same path (left->left or right->right)
+            NodeWrap<btNodeType> wSide(wNode[whichSide]);
 
-            
-            NodeWrap<btNodeType> grandChildLeft;
-            if (childNode[LEFT] != nullptr) grandChildLeft = (childNode[LEFT]);
-            NodeWrap<btNodeType> grandChildRight;
-            if (childNode[RIGHT] != nullptr) grandChildRight = (childNode[RIGHT]);
-            
-            assert(!grandChildLeft.isRed() || !grandChildRight.isRed());  // they can't both be red
-            
-            if (grandChildRight.isRed()) subNodeDir = RIGHT;
-            else if (grandChildLeft.isRed()) subNodeDir = LEFT;
-            
-            if (subNodeDir != NONE)
+            if (wSide[whichSide] != nullptr && wSide[whichSide]->isRed())
             {
-                // Both the red child and grandchild are on the same side
-                if (nDir == subNodeDir)
-                {
-                    // do the rotation/flip around "node" given the link directions
-                    // we found pointing to the red nodes
-                    // If the red node is in direction "nDir" we want to rotate in the opposite direction
-                    newNode = doRotation(node, !nDir);
-                }
-                else // The red child and grandchild are on DIFFERENT sides
-                {
-                    newNode = doDoubleRotation(node, !nDir);
-                }
+                newNode = doRotation(node, !whichSide);
+                treeChanged = true;
+            }
+            else if (wSide[!whichSide] != nullptr && wSide[!whichSide]->isRed())
+            {
+                newNode = doDoubleRotation(node, !whichSide);
+                treeChanged = true;
             }
         }
-        
     }
+
     
-    // Now, go up the tree and rebalance some more
-    reBalance(dynamic_cast<btNodeType *>(newNode->parentNode));
+    // Now, go up the tree and rebalance some more, unless we're at the top
+    if (newNode->parentNode == nullptr)
+        return;
+    
+    // We want to go up the tree and re-balance as we go.  We want to rebalance the
+    // side (right or left) of the subtree from whence we came
+    TreeNode::NodeDirection fromWhence = newNode->getParentDir();
+    
+    assert(fromWhence != NONE);
+    
+    reBalance(dynamic_cast<btNodeType *>(newNode->parentNode), fromWhence);
 }
 
 // We know that the node[rotateDir] is red and node[rotateDir][rotateDir] is red
@@ -397,48 +393,60 @@ btNodeType *BinaryTree<btNodeType>::doRotation(btNodeType *node,
     NodeWrap<btNodeType> wSave(save);
     
     debugPrintf("===================\n");
-    debugPrintf("\nBefore rotation:\n");
+    debugPrintf2("\nBefore rotation around '%s' to the %s:\n", node->getCValue(), directionString(rotateDir));
+#ifdef DEBUG_OUTPUT
     dumpPreOrderTree(node);
+#endif
     debugPrintf("===================\n");
     
+    // Core of the rotation
+    save->setToBlack();
+    node->setToRed();
+    
+    // Get the old node's parent's pointer so we can reset it
+    btNodeType **parentPointer = nullptr;
+    
+    // Read as: Take the node's link opposite to the direction of rotation, and change it
+    // to THAT node's link in the direction of the rotation
+    // Put another way node->{opposite to rotation}node = node->{opposite to rotation}node->{rotation direction link}node
     *(wNode(!rotateDir)) = wSave[rotateDir];
+    
+    // Read as: node->{opposite to rotation}node->{rotation direction link} = original node
     *(wSave(rotateDir)) = node;
     
-    node->setToRed();
-    save->setToBlack();
+    // Fix the parent node relationships
     
-    // Ultimately, we want the parent of "node" to point to the rotated
-    // up node instead of "node".  This tracks the link from node's parent to "node"
-    btNodeType *saveParentNode = dynamic_cast<btNodeType *>(node->parentNode);
-    
-    if (saveParentNode) // if there IS a parent...
+    // Make sure the new parent nodes point back at their new childer
+    if (node->parentNode != nullptr)  // check if we're at the root node
     {
-        TreeNode::NodeDirection parentNodeDir;
-        parentNodeDir = node->getParentDir();
-        NodeWrap<btNodeType> wNodeParent(saveParentNode);  // When we get here, wNodeParent(parentNodeDir) will point to the link
-                                                     // we need to fix later on.
-        *(wNodeParent(parentNodeDir)) = save; // wNode[rotateDir];
+        NodeWrap<btNodeType> wParentNode(dynamic_cast<btNodeType *>(node->parentNode));
+        parentPointer = wParentNode(node->getParentDir());
+        assert(parentPointer != nullptr);
+        *parentPointer = save;  
     }
     
-    // this makes the original node a child of ITS red child
-    if (isRoot(node))
+    if (wNode[!rotateDir] != nullptr)
     {
-        debugPrintf2("Making new root after rotation, '%s' in node %p\n",
-                    save->getCValue(), (void *)(save));
-        makeRoot(save);  // have to set the new root, if needed
-        save->parentNode = nullptr;
-        node->setToBlack();  // The root is always black
-    }
-    else
-    {
-        save->parentNode = saveParentNode;  // change new parent of node rotated "up"
+        (*(wNode(!rotateDir)))->parentNode = node;
     }
     
-    node->parentNode = save;  // change new parent of this node
+    // New top node's parent is the old original node's parent
+    save->parentNode = node->parentNode;
+    
+    // The original node's parent is now the "top" node
+    node->parentNode = save;
+
+    // Do we have a new root?
+    if (save->parentNode == nullptr)
+    {
+        makeRoot(save);
+    }
     
     debugPrintf("===================\n");
-    debugPrintf1("\nAfter rotation to the %s:\n", rotateDir == LEFT ? "left" : "right");
+    debugPrintf2("\nAfter rotation around '%s' to the %s:\n", node->getCValue(), directionString(rotateDir));
+#ifdef DEBUG_OUTPUT
     dumpPreOrderTree(save);
+#endif
     debugPrintf("===================\n");
     
     // Return the new root of this subtree
@@ -453,6 +461,7 @@ btNodeType *BinaryTree<btNodeType>::doDoubleRotation(btNodeType *node,
     // First, do a single rotation so that red grandchild is on the same side and the red child
     NodeWrap<btNodeType> wNode(node);
     
+    debugPrintf2("*** Double rotation around %s, to the %s\n", node->getCValue(), directionString(rotateDir));
     *(wNode(!rotateDir)) = doRotation(wNode[!rotateDir], !rotateDir); 
     return doRotation(node, rotateDir);
 }
@@ -492,4 +501,78 @@ void littleDumpNode(btNodeType *node)
     
 }
 #endif
+
+#define ERROR_ASSERTS
+#ifdef ERROR_ASSERTS
+#define VERIFY_ERROR(x)  { \
+                            Visualize *vis = new Visualize(getRoot()); \
+                            vis->makeVisualization(); \
+                            assert(x); \
+                         }
+#else
+#define VERIFY_ERROR(x)  return(x)
+#endif
+// Verify that a tree is a valid red-black binary tree
+template <typename btNodeType>
+unsigned int BinaryTree<btNodeType>::verifyTree(const btNodeType *theRoot)
+{
+    
+    int leftBlackCount = 0,
+                 rightBlackCount = 0;  // black node depths
+    
+    if (theRoot == nullptr)
+        return 1;
+    
+    const btNodeType *leftNode = dynamic_cast<const btNodeType *>(theRoot->leftNode);
+    const btNodeType *rightNode = dynamic_cast<const btNodeType *>(theRoot->rightNode);
+    
+    // Check for consecutive red links
+    if (theRoot->isRed() &&
+        (((leftNode != nullptr) && leftNode->isRed()) || 
+        (rightNode != nullptr && rightNode->isRed())))
+    {
+        cerr << "Red violation, node " << (void *)theRoot << endl;
+        VERIFY_ERROR(0);
+    }
+    
+    leftBlackCount = verifyTree(leftNode);
+    rightBlackCount = verifyTree(rightNode);
+    
+    // Check for invalid binary search tree
+    if ((leftNode != nullptr && leftNode->compare(theRoot) <= 0) ||
+        (rightNode != nullptr && rightNode->compare(theRoot) >= 0))
+    {
+        cerr << "Bad binary tree at node " << (void *)theRoot << endl;
+        VERIFY_ERROR(0);
+    }
+    
+    // Check parentage
+    if (theRoot->parentNode != nullptr)
+    {
+        if (theRoot->parentNode->leftNode != theRoot && theRoot->parentNode->rightNode != theRoot)
+            VERIFY_ERROR(0);
+    }
+    
+    // Check for black height
+    if (leftBlackCount != 0 && rightBlackCount != 0 && leftBlackCount != rightBlackCount )
+    {
+        cerr << "Black violation at node " << (void *)theRoot << endl;
+
+        VERIFY_ERROR(0);
+        
+    }
+    
+    // return current black height at this node
+    // ignore red nodes ('cause they're not black!)
+    if (rightBlackCount != 0 && leftBlackCount != 0)
+    {
+        return theRoot->isRed() ? leftBlackCount : leftBlackCount+1;
+    }
+    else
+    {
+        VERIFY_ERROR(0);
+    }
+}
+
+
 #endif /* defined(__Tree_exercises__BinaryTree__) */

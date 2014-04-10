@@ -55,7 +55,7 @@ public:
         return rhs.nodeValue->compare(*this->nodeValue);
     }
     
-    int compare(StringNode *rhs) const
+    int compare(const StringNode *rhs) const
     {
         return rhs->nodeValue->compare(*this->nodeValue);
     }

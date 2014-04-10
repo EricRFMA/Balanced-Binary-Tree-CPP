@@ -18,3 +18,22 @@ TreeNode::NodeDirection operator!(const TreeNode::NodeDirection dir)
     else if (dir == NONE) return NONE;
     else assert(false);
 }
+
+/// Get string representation of a node direction, mostly for debugging
+const char *directionString(const TreeNode::NodeDirection dir)
+{
+    switch(dir)
+    {
+        case LEFT:
+            return "left";
+            
+        case RIGHT:
+            return "right";
+            
+        case NONE:
+            return "none";
+            
+        case PARENT:
+            return "parent";
+    }
+}

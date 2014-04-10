@@ -8,7 +8,7 @@
 
 #ifndef Tree_exercises_debugprintf_h
 #define Tree_exercises_debugprintf_h
-#define DEBUG_OUTPUT
+// #define DEBUG_OUTPUT
 
 #ifdef DEBUG_OUTPUT
 #define debugPrintf(x) printf(x)
