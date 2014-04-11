@@ -10,6 +10,8 @@
 #include <fstream>
 #include <ctime>
 #include <assert.h>
+#include <random>
+#include <sys/stat.h>
 
 #include "TreeNode.h"
 #include "BinaryTree.h"
@@ -18,24 +20,40 @@
 #include "visualizer.h"
 
 #define MAX_WORD_LENGTH   100
-// #define ARRAY_DATA
-#define SORTED_LIST
+#define DICTIONARY_FILENAME "/usr/share/dict/web2"
+#define WORD_MAX  50 // maximum number of words
+// #define ARRAY_DATA 1
+// #define SORTED_LIST 1
+#define RANDOM_LIST 1
+
+uniform_int_distribution<unsigned> *
+createUniformDist(unsigned min, off_t max)
+{
+    return new uniform_int_distribution<unsigned>(min, max);
+}
+
+default_random_engine *
+createRandomEngine()
+{
+    return new default_random_engine((unsigned int)time(0));
+}
 
 template class BinaryTree<StringNode>;
 int main(int argc, const char * argv[])
 {
     unsigned int wordcount = 0;
-    
+
+#if ARRAY_DATA
     // here's some dummy data
     string words[] = {
         "the", "quick", "brown", "fox", "jumps", "over", "the", "lazy", "dog", "eric", "fred", "george", "harry", "ignacio"
     };
-
+#endif
     
     // create the empty binary tree
     BinaryTreeType *myTree = new BinaryTreeType;
     clock_t startTime = clock();
-#ifdef ARRAY_DATA
+#if defined(ARRAY_DATA)
     for (string str : words)
     {
         /// Wrap our nodes in a node wrapper, which allows accessing left and right sub nodes
@@ -44,13 +62,12 @@ int main(int argc, const char * argv[])
         myTree->addNode(theStringNode);
         wordcount++;
     }
-#else
-#ifdef SORTED_LIST
+#elif defined(SORTED_LIST)
     // Let's use some LIVE data
-    std::ifstream instream("/usr/share/dict/web2a", std::ifstream::in);
+    std::ifstream instream(DICTIONARY_FILENAME, std::ifstream::in);
 
     
-    while (!instream.eof() && wordcount < 50)  // put a cap on it for now
+    while (!instream.eof() && wordcount < WORD_MAX)  // put a cap on it for now
     {
         char inputbuffer[MAX_WORD_LENGTH];
         instream.getline(inputbuffer, MAX_WORD_LENGTH);
@@ -66,8 +83,76 @@ int main(int argc, const char * argv[])
     }
     
     instream.close();
-#endif
+#elif defined(RANDOM_LIST)
+    // get file size in bytes
+    struct stat buf;
+    if (stat(DICTIONARY_FILENAME, &buf) < 0)
+    {
+        cerr << "Can't stat dictionary file" << endl;
+        exit(1);
+    }
+    
+    ifstream dictStream(DICTIONARY_FILENAME, fstream::in);
+    if (dictStream.bad())
+    {
+        cerr << "Can't open dictionary file" << endl;
+        exit (2);
+    }
+    
+    uniform_int_distribution<unsigned> *u = createUniformDist(0, buf.st_size);
+    default_random_engine *e = createRandomEngine();
+    
+    /// Vector will be filled with the words from the dictionary
+    vector<string> wordList;
+    
+    for (int i = 0 ; i < WORD_MAX ; i++)
+    {
+        bool done = false;
+        
+        // use this do loop to make sure we do this at least once
+        // and can retry on errors
+        do
+        {
+            unsigned seekLoc = (*u)(*e);
+            dictStream.seekg(seekLoc);
+            
+            assert(dictStream.good());
+            
+            // Tricky part... seek backwards until we get a line break
+            // Forward might be easier, but this way we don't preclude the
+            // first word in the list.
+            while (dictStream.peek() != '\n' && dictStream.good())
+            { 
+                dictStream.seekg(-1, ios_base::cur);
+            }
+            dictStream.seekg(1, ios_base::cur);
+            
+            if (dictStream.bad())  // did we seek back TOO far???
+                continue;
+            
+            char inputbuffer[MAX_WORD_LENGTH];
+            dictStream.getline(inputbuffer, MAX_WORD_LENGTH);
 
+            string theString(inputbuffer);
+            
+            wordList.push_back(theString);
+            
+            done = true;
+            
+        } while (!done);
+    }
+    
+    // We should have a nice vector of random words here
+    for (string str : wordList)
+    {
+        cerr << str << endl;
+        StringNode *theStringNode = new StringNode(str);
+        myTree->addNode(theStringNode);
+        wordcount++;
+    }
+
+
+    
 #endif
     
     clock_t endTime = clock();
