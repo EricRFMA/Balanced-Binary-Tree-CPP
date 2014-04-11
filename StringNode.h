@@ -52,12 +52,18 @@ public:
 
     int compare(const StringNode &rhs) const
     {
-        return rhs.nodeValue->compare(*this->nodeValue);
+        string rightHandSide = tolower(*rhs.nodeValue);
+        string leftHandSide = tolower(*nodeValue);
+        
+        return rightHandSide.compare(leftHandSide);
     }
     
     int compare(const StringNode *rhs) const
     {
-        return rhs->nodeValue->compare(*this->nodeValue);
+        string rightHandSide = tolower(*rhs->nodeValue);
+        string leftHandSide = tolower(*nodeValue);
+        
+        return rightHandSide.compare(leftHandSide);
     }
     
     void setValue(string *value)
@@ -75,7 +81,21 @@ public:
         return nodeValue->c_str();
     }
     
-
+    static string tolower(string &str)
+    {
+        string result(str);
+        
+        const char *cstr = result.c_str();
+        
+        for (int i = 0 ; cstr[i] != '\0' ; i++)
+        {
+            if (cstr[i] >= 'A' and cstr[i] <= 'Z')
+                result[i] = cstr[i] + 32;
+        }
+        
+        return result;
+    }
+    
 private:
         string *nodeValue;
 };

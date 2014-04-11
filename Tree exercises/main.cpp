@@ -84,6 +84,10 @@ int main(int argc, const char * argv[])
     
     instream.close();
 #elif defined(RANDOM_LIST)
+    
+    // Use a random list of words from the dictionary
+    // Rather than try to read in all 235,886 words, we seek to a random
+    // position in the file
     // get file size in bytes
     struct stat buf;
     if (stat(DICTIONARY_FILENAME, &buf) < 0)
