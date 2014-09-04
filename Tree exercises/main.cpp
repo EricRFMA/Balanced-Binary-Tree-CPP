@@ -21,7 +21,7 @@
 
 #define MAX_WORD_LENGTH   100
 #define DICTIONARY_FILENAME "/usr/share/dict/web2"
-#define WORD_MAX  50 // maximum number of words
+#define WORD_MAX  500 // maximum number of words
 // #define ARRAY_DATA 1
 // #define SORTED_LIST 1
 #define RANDOM_LIST 1
